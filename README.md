@@ -1,0 +1,1 @@
+MSc project: Interpretable belief dynamics in neural representations — preprocessing, decoding, saliency, and dynamical model discovery.
