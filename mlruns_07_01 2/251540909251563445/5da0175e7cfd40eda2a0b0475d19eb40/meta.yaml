@@ -1,0 +1,14 @@
+artifact_uri: file:./mlruns_07_01/251540909251563445/5da0175e7cfd40eda2a0b0475d19eb40/artifacts
+end_time: 1755173776980
+entry_point_name: ''
+experiment_id: '251540909251563445'
+lifecycle_stage: active
+run_id: 5da0175e7cfd40eda2a0b0475d19eb40
+run_name: unique-hare-641
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1755173694013
+status: 3
+tags: []
+user_id: user_id

@@ -1,0 +1,156 @@
+
+
+fit.seed_everything: 654
+
+fit.trainer:
+  gradient_clip_val: 0.5
+  max_epochs: 500
+  precision: 16-mixed
+  accelerator: auto
+  devices: 1
+  log_every_n_steps: 9
+  deterministic: true
+  logger:
+    - class_path: lightning.pytorch.loggers.MLFlowLogger
+      init_args:
+        # https://lx619lhl-5000.euw.devtunnels.ms/#/experiments/559665893373554416/runs/384a1c6926e749db9d79c20c1e415da6
+        experiment_name: CEBRAFactorReg-trial_9733e_00_ld16_lr1.1e-03
+
+        # https://lx619lhl-5000.euw.devtunnels.ms/#/experiments/559665893373554416/runs/3ee8bf2ac3ac4a608fc4b6149de280b5
+        # experiment_name: CEBRAFactorReg-trial_180d4_00_ld64_lr5.2e-04
+        tracking_uri: file:./mlruns_07_01
+        log_model: true
+  callbacks:
+    - class_path: lightning.pytorch.callbacks.LearningRateMonitor
+    - class_path: src.callbacks.latent_covariance.LatentCovarianceCallback
+      init_args: { save_matrix: false }
+    - class_path: src.callbacks.eval_latents.EvaluateLatentsCallback
+      init_args: { alpha: 1e-3, max_iter: 1000, every_n_epochs: 4 }
+    - class_path: lightning.pytorch.callbacks.ModelCheckpoint
+      init_args:
+        save_last: true
+        save_top_k: 4
+        monitor: val/prpd_r2
+        mode: max
+    # - class_path: lightning.pytorch.callbacks.EarlyStopping
+    #   init_args:
+    #     monitor: val/prpd_r2
+    #     patience: 50
+    #     mode: max
+        # enable_version_counter: true
+    # - class_path: src.callbacks.save_latents.SaveLatentsCallback
+    #   init_args: { every_n_epochs: 1 }
+
+fit.data:
+  class_path: src.data.spike_datamodule.SpikeDataModule
+  init_args:
+    session_path: data/processed/spikes.npz
+    prpd_path: data/processed/prpd.npz
+    batch_size: 32
+    num_workers: 0
+    contrastive: true
+    fr_scale: true
+    max_spikes: 5
+    shift_prpd_by_one: true
+
+# -------------------------- cebra factorvae -----------------------
+# fit.model:
+#   class_path: src.models.cebra_factorvae.CEBRAFactorVAE
+#   init_args:
+#     input_dim: 367           # neurons
+#     latent_dim: 16
+#     temperature: 0.07
+#     tc_weight: 6.4
+#     contrastive_weight: 1.0
+#     lr: 3e-4
+#     decoder_type: linear
+#     hidden_dims: [64]
+#     recon_weight: 0.1
+#     lr_scheduler_args:
+#       mode: min
+#       patience: 5
+#       factor: 0.5
+
+# -------------------------- cebra mlp -----------------------
+
+fit.model:
+  class_path: src.models.cebra_factorvae_mlp.CEBRAFactorReg
+  init_args:
+    model_name: offset40-model-4x-subsample
+    # input_dim: 367           # neurons
+    # num_hidden_units: 800
+    # latent_dim: 64
+    # temperature: 0.10649564061794778
+    # tc_weight: 2.485235392787404
+    # contrastive_weight: 1.0
+    # lr: 0.00032195399474161567
+    # decoder_type: mlp
+    # hidden_dims: [32,64]
+    # recon_weight: 0.1
+    # prpd_weight: 1.3811159266792679
+    # prpd_warmup: 5 # pretrain epochs without prpd_mse loss
+    # prpd_head_hidden_dims: [64, 64]
+
+    # input_dim: 367           # neurons
+    # num_hidden_units: 800
+    # latent_dim: 16
+    # temperature: 0.07453689587632668
+    # tc_weight: 1.63
+    # contrastive_weight: 1.0
+    # lr: 0.0008507348657115304
+    # decoder_type: mlp
+    # hidden_dims: [32,64]
+    # recon_weight: 0.05
+    # prpd_weight: 1.3824553176124343
+    # prpd_warmup: 5 # pretrain epochs without prpd_mse loss
+    # prpd_head_hidden_dims: [32]
+
+    # https://lx619lhl-5000.euw.devtunnels.ms/#/experiments/559665893373554416/runs/3ee8bf2ac3ac4a608fc4b6149de280b5
+    # input_dim: 367           # neurons
+    # num_hidden_units: 800
+    # latent_dim: 64
+    # temperature: 0.08640855324115908
+    # tc_weight: 2.750481173827734
+    # contrastive_weight: 1.0
+    # lr: 0.0005247830619448504
+    # decoder_type: mlp
+    # hidden_dims: [32, 64]
+    # recon_weight: 0.1
+    # prpd_weight: 1.8568449966200635
+    # prpd_warmup: 5 # pretrain epochs without prpd_mse loss
+    # prpd_head_hidden_dims: [64, 64]
+
+    # https://lx619lhl-5000.euw.devtunnels.ms/#/experiments/559665893373554416/runs/384a1c6926e749db9d79c20c1e415da6
+    # contrastive_weight: 1.0
+    # hidden_dims: [32, 64]
+    # latent_dim: 16
+    # input_dim: 367           # neurons
+    # lr: 0.0009309962706134707
+    # num_hidden_units: 800
+    # prpd_head_hidden_dims: [64, 64]
+    # prpd_warmup: 5 # pretrain epochs without prpd_mse loss
+    # prpd_weight: 1.3132080973807638
+    # recon_weight: 0.1
+    # tc_weight: 1.8154524899570668
+    # temperature: 0.08237045332474188
+    # decoder_type: mlp
+
+    # https://lx619lhl-5000.euw.devtunnels.ms/#/experiments/466167657186776951/runs/0b2c719c1391496f98ec55cf4e5f491d
+    contrastive_weight: 1.0
+    hidden_dims: [32, 64]
+    latent_dim: 16
+    input_dim: 367           # neurons
+    lr: 0.0010710256652882602
+    num_hidden_units: 1000
+    prpd_head_hidden_dims: [64, 64]
+    prpd_warmup: 5 # pretrain epochs without prpd_mse loss
+    prpd_weight: 1.38923118948451
+    recon_weight: 0.05
+    tc_weight: 1.6055778080259067
+    temperature: 0.10942194439927411
+    decoder_type: mlp
+
+    # lr_scheduler_args:
+    #   mode: min
+    #   patience: 7
+    #   factor: 0.8

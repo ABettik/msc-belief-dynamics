@@ -1,0 +1,387 @@
+
+# seed_everything: 654
+seed_everything: 378
+
+trainer:
+  # gradient_clip_val: 0.5
+  max_epochs: 150
+  precision: 16-mixed
+  accelerator: auto
+  devices: 1
+  log_every_n_steps: 9
+  deterministic: true
+  enable_progress_bar: false
+  callbacks:
+    - class_path: src.callbacks.mtm_masking.MtMMaskingCallback
+      init_args:
+        masking_schemes: ['neuron', 'causal']
+        masking_ratio: 0.3
+  # plugins:
+  #   - class_path: ray.train.lightning.RayLightningEnvironment
+  # strategy: single_device
+
+data:
+  class_path: src.data.spike_datamodule.SpikeDataModule
+  init_args:
+    session_path: ./data/processed/spikes.npz
+    prpd_path:    ./data/processed/prpd.npz
+    batch_size:   32
+    num_workers:  0
+    contrastive:  false
+    fr_scale: false
+    max_spikes: 5
+    shift_prpd_by_one: true
+
+model:
+  class_path: src.models.ndt1_wrapper.NDT1SSLModule
+  init_args:
+    method_name: ssl
+    num_neurons: 367           # neurons
+    latent_dim: 256
+    prpd_head_hidden_dims: [64, 64]
+    prpd_weight: 0.3
+    mlm_weight: 0.1
+    tc_weight: 0.1
+
+    tc_warmup_frac: 0.2
+    d_lr: 1e-4
+    d_update_every: 4
+    perm_repeats: 2
+    r1_gamma: 0.0
+    d_train_when_dloss_gt: 0.55
+    stdz_z: true
+    use_epochwise_d: true
+    d_pool_max: 256
+    d_phase_passes: 1
+    d_phase_mb: 64
+    optimizer_args:
+      lr: 1.e-4
+      weight_decay: 0.01
+      eps: 1.e-8
+    lr_scheduler_args:
+      max_lr: 1e-3
+      pct_start: 0.15
+      div_factor: 10
+    ndt_cfg:
+      encoder:
+        from_pt: null
+        stitching: false # single session
+        masker:
+          force_active: true
+          mode: temporal
+          ratio: 0.3
+          zero_ratio: 1.0
+          random_ratio: 1.0
+          expand_prob: 0.0
+          max_timespan: 1
+          channels: null
+          timesteps: null
+          mask_regions:
+          - all
+          target_regions:
+          - all
+          n_mask_regions: 1
+        context: # -1 is bidirectional attention
+          forward: -1
+          backward: -1
+        norm_and_noise:
+          active: false
+          smooth_sd: 2
+          norm: zscore
+          eps: 1.0e-07
+          white_noise_sd: 1.0
+          constant_offset_sd: 0.2
+        embedder:
+          n_channels: 367
+          n_blocks: 12
+          n_dates: 1 # single day session
+          use_prompt: false # no prompting
+          use_session: false # no sessions
+          max_F: 80 # 80 bins is max size
+          mode: linear
+          mult: 2
+          adapt: false
+          pos: true
+          act: softsign
+          scale: 1
+          bias: true
+          dropout: 0.2
+          fixup_init: false
+          init_range: 0.1
+          spike_log_init: true
+          max_spikes: 5
+          tokenize_binary_mask: false
+          stack:
+            active: false
+            size: 32
+            stride: 4
+        transformer:
+          n_layers: 4
+          hidden_size: 256
+          use_scalenorm: false
+          use_rope: false
+          rope_theta: 10000.0
+          n_heads: 4
+          attention_bias: true
+          act: gelu
+          inter_size: 512
+          mlp_bias: true
+          dropout: 0.4
+          fixup_init: true
+        factors:
+          active: false
+          size: 8
+          act: relu
+          bias: true
+          dropout: 0.0
+          fixup_init: false
+          init_range: 0.1
+      decoder:
+        from_pt: null
+
+
+
+
+
+
+
+
+
+    # ndt_cfg:
+    #   seed: 42
+    #   # savestring: test
+    #   # wandb_project: multi-session
+    #   # log_to_wandb: false
+    #   verbosity: 0
+    #   # wandb:
+    #   #   use: true
+    #   #   entity: null
+    #   #   project: multi-session
+    #   #   run_name: 671c7ea7
+    #   # dirs:
+    #   #   checkpoint_dir: checkpoints
+    #   #   log_dir: results
+    #   #   dataset_cache_dir: checkpoints/datasets_cache
+    #   #   dataset_dir: ibl-foundation-model/671c7ea7-6726-4fbe-adeb-f89c2c8e489b
+    #   #   behav_dir: 671c7ea7-6726-4fbe-adeb-f89c2c8e489b
+    #   #   huggingface_org: ibl-foundation-model
+    #   # training:
+    #   #   num_epochs: 1000
+    #   #   train_batch_size: 16
+    #   #   test_batch_size: 16
+    #   #   shuffle_test_dataloader: false
+    #   #   save_plot_every_n_epochs: 10
+    #   #   save_every: 50
+    #   #   eval_every: null
+    #   #   dummy: true
+    #   model:
+    #     model_class: NDT1
+    #     encoder:
+    #       from_pt: null
+    #       stitching: true
+    #       masker:
+    #         force_active: true
+    #         mode: all
+    #         ratio: 0.3
+    #         zero_ratio: 1.0
+    #         random_ratio: 1.0
+    #         expand_prob: 0.0
+    #         max_timespan: 1
+    #         channels: null
+    #         timesteps: null
+    #         mask_regions:
+    #         - all
+    #         target_regions:
+    #         - all
+    #         n_mask_regions: 1
+    #       context:
+    #         forward: -1
+    #         backward: -1
+    #       norm_and_noise:
+    #         active: false
+    #         smooth_sd: 2
+    #         norm: zscore
+    #         eps: 1.0e-07
+    #         white_noise_sd: 1.0
+    #         constant_offset_sd: 0.2
+    #       embedder:
+    #         n_channels: 668
+    #         n_blocks: 24
+    #         n_dates: 24
+    #         max_F: 100
+    #         mode: linear
+    #         mult: 2
+    #         adapt: false
+    #         pos: true
+    #         act: softsign
+    #         scale: 1
+    #         bias: true
+    #         dropout: 0.2
+    #         fixup_init: false
+    #         init_range: 0.1
+    #         spike_log_init: false
+    #         max_spikes: 0
+    #         tokenize_binary_mask: false
+    #         use_prompt: true
+    #         use_session: true
+    #         stack:
+    #           active: false
+    #           size: 32
+    #           stride: 4
+    #       transformer:
+    #         n_layers: 5
+    #         hidden_size: 512
+    #         use_scalenorm: false
+    #         use_rope: false
+    #         rope_theta: 10000.0
+    #         n_heads: 8
+    #         attention_bias: true
+    #         act: gelu
+    #         inter_size: 1024
+    #         mlp_bias: true
+    #         dropout: 0.4
+    #         fixup_init: true
+    #       factors:
+    #         active: false
+    #         size: 8
+    #         act: relu
+    #         bias: true
+    #         dropout: 0.0
+    #         fixup_init: false
+    #         init_range: 0.1
+    #     decoder:
+    #       from_pt: null
+    #   data:
+    #     dataset_name: ibl
+    #     dataset_class: ssl
+    #     hf_dataset_name: null
+    #     json_dataset_name: null
+    #     train_name: train
+    #     test_name: test
+    #     train_len: null
+    #     test_len: null
+    #     LOG_EPSILON: 1.0e-07
+    #     use_lograte: true
+    #     max_time_length: 100
+    #     max_space_length: 668
+    #     patching: true
+    #     sort_by_depth: false
+    #     brain_region: all
+    #     include_behav: false
+    #     target: null
+    #     load_meta: true
+    #     num_sessions: 10
+    #     train_session_eid:
+    #     - 72cb5550-43b4-4ef0-add5-e4adfdfb5e02
+    #     - 51e53aff-1d5d-4182-a684-aba783d50ae5
+    #     - d57df551-6dcb-4242-9c72-b806cff5613a
+    #     - e2b845a1-e313-4a08-bc61-a5f662ed295e
+    #     - d2832a38-27f6-452d-91d6-af72d794136c
+    #     test_session_eid: []
+    #     split_method: predefined
+    #     use_aligned_test: false
+    #     sort_by_region: false
+    #     spike_augmentation: false
+    #     use_re: true
+    #   method:
+    #     model_kwargs:
+    #       method_name: ssl
+    #       use_lograte: true
+    #       loss: poisson_nll
+    #       output_size: 2
+    #       clf: false
+    #       reg: false
+    #     dataset_kwargs: {}
+    #     dataloader_kwargs:
+    #       pad_dict:
+    #         spikes:
+    #           dim: 0
+    #           side: right
+    #           value: 0
+    #           truncate: null
+    #           min_length: null
+    #   optimizer:
+    #     gradient_accumulation_steps: 1
+    #     lr: 0.0001
+    #     wd: 0.01
+    #     eps: 1.0e-08
+    #     warmup_pct: 0.15
+    #     gamma: 0.95
+    #     div_factor: 10
+    #     scheduler: cosine
+    #   model_class: NDT1
+    #   encoder:
+    #     from_pt: null
+    #     stitching: true
+    #     masker:
+    #       force_active: true
+    #       mode: all
+    #       ratio: 0.3
+    #       zero_ratio: 1.0
+    #       random_ratio: 1.0
+    #       expand_prob: 0.0
+    #       max_timespan: 1
+    #       channels: null
+    #       timesteps: null
+    #       mask_regions:
+    #       - all
+    #       target_regions:
+    #       - all
+    #       n_mask_regions: 1
+    #     context:
+    #       forward: -1
+    #       backward: -1
+    #     norm_and_noise:
+    #       active: false
+    #       smooth_sd: 2
+    #       norm: zscore
+    #       eps: 1.0e-07
+    #       white_noise_sd: 1.0
+    #       constant_offset_sd: 0.2
+    #     embedder:
+    #       n_channels: 668
+    #       n_blocks: 24
+    #       n_dates: 24
+    #       max_F: 100
+    #       mode: linear
+    #       mult: 2
+    #       adapt: false
+    #       pos: true
+    #       act: softsign
+    #       scale: 1
+    #       bias: true
+    #       dropout: 0.2
+    #       fixup_init: false
+    #       init_range: 0.1
+    #       spike_log_init: false
+    #       max_spikes: 0
+    #       tokenize_binary_mask: false
+    #       use_prompt: true
+    #       use_session: true
+    #       stack:
+    #         active: false
+    #         size: 32
+    #         stride: 4
+    #     transformer:
+    #       n_layers: 5
+    #       hidden_size: 512
+    #       use_scalenorm: false
+    #       use_rope: false
+    #       rope_theta: 10000.0
+    #       n_heads: 8
+    #       attention_bias: true
+    #       act: gelu
+    #       inter_size: 1024
+    #       mlp_bias: true
+    #       dropout: 0.4
+    #       fixup_init: true
+    #     factors:
+    #       active: false
+    #       size: 8
+    #       act: relu
+    #       bias: true
+    #       dropout: 0.0
+    #       fixup_init: false
+    #       init_range: 0.1
+    #   decoder:
+    #     from_pt: null

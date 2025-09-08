@@ -1,0 +1,211 @@
+
+
+fit.seed_everything: 654
+
+fit.trainer:
+  # gradient_clip_val: 0.5
+  # max_epochs: 125
+  max_epochs: 1000
+  precision: 16-mixed
+  accelerator: auto
+  devices: 1
+  log_every_n_steps: 9
+  deterministic: true
+  enable_progress_bar: false
+  logger:
+    - class_path: lightning.pytorch.loggers.MLFlowLogger
+      init_args:
+        experiment_name: NDT1SSL_masker_fix_128
+        # experiment_name: NDT1SSL_16
+        tracking_uri: file:./mlruns_07_01
+        log_model: true
+  callbacks:
+    - class_path: lightning.pytorch.callbacks.LearningRateMonitor
+    - class_path: callbacks.eval_latents.EvaluateLatentsCallback
+      init_args: { alpha: 1e-3, max_iter: 1000, every_n_epochs: 4 }
+    - class_path: lightning.pytorch.callbacks.ModelCheckpoint
+      init_args:
+        save_last: true
+        save_top_k: 20
+        monitor: val/prpd_r2
+        mode: max
+    - class_path: callbacks.mtm_masking.MtMMaskingCallback
+      init_args:
+        masking_schemes: ['neuron', 'causal']
+        masking_ratio: 0.3
+
+fit.data:
+  class_path: data.spike_datamodule.SpikeDataModule
+  init_args:
+    session_path: ./data/processed/spikes.npz
+    prpd_path:    ./data/processed/prpd.npz
+    batch_size:   32
+    num_workers:  0
+    contrastive:  false
+    fr_scale: false
+    max_spikes: 5
+    shift_prpd_by_one: true
+
+# -------------------------- ndt mlm mlp -----------------------
+
+fit.model:
+  class_path: models.ndt1_wrapper.NDT1SSLModule
+  init_args:
+    method_name: ssl
+    num_neurons: 367           # neurons
+    # latent_dim: 16
+    latent_dim: 128
+    prpd_head_hidden_dims: [64, 64]
+    # source https://lx619lhl-5000.euw.devtunnels.ms/#/experiments/630778744832000480/runs/d603c101171742f4aeb56c2f2e073d74
+    # result https://lx619lhl-5000.euw.devtunnels.ms/#/experiments/346362216954362618/runs/acbe2be68a64451a88cbd2f5dcf8d20c/artifacts
+    # mlm_weight: 0.9357949259090076
+    # prpd_weight: 0.4953688133584506
+    # tc_weight: 0.5201673826696751
+
+    # source https://lx619lhl-5000.euw.devtunnels.ms/#/experiments/630778744832000480/runs/b24740836eab4c92bfdc42213fd9b2e9
+    # result https://lx619lhl-5000.euw.devtunnels.ms/#/experiments/346362216954362618/runs/5352b37ababa4479969dcd947680a4b2/artifacts
+    # mlm_weight: 0.10764413430999135
+    # prpd_weight: 0.43025889925542954
+    # tc_weight: 0.2467323514398828
+    
+
+    # source https://lx619lhl-5000.euw.devtunnels.ms/#/experiments/630778744832000480/runs/b8d395101f3c44e6920d709ad6161c3b
+    # result https://lx619lhl-5000.euw.devtunnels.ms/#/experiments/346362216954362618/runs/fa251add30e44cc7815c03d3494a4f74
+    # mlm_weight: 0.13826811134400607
+    # prpd_weight: 0.2945913781603937
+    # tc_weight: 0.6942464830346224
+
+    # source https://lx619lhl-5000.euw.devtunnels.ms/#/experiments/630778744832000480/runs/86e13eeaabef48e9add3160a36cba8f6
+    # result https://lx619lhl-5000.euw.devtunnels.ms/#/experiments/346362216954362618/runs/ebc6eff0efee431e9563de6882b82912/artifacts
+    # mlm_weight: 0.2618493225172
+    # prpd_weight: 0.20915324523522238
+    # tc_weight: 0.16320375255583836
+
+
+    # DIP-VAE
+    # source https://lx619lhl-5000.euw.devtunnels.ms/#/experiments/630778744832000480/runs/86e13eeaabef48e9add3160a36cba8f6
+    # result https://lx619lhl-5000.euw.devtunnels.ms/#/experiments/346362216954362618/runs/585cdfc5ff164538b43dc0e8eb9fe756/artifacts
+    # mlm_weight: 0.2618493225172
+    # prpd_weight: 0.20915324523522238
+    # tc_weight: 0.16320375255583836
+
+    # source https://lx619lhl-5000.euw.devtunnels.ms/#/experiments/541065181958251087/runs/50dc38585e1243369d83ccf87c08968f
+    # result https://lx619lhl-5000.euw.devtunnels.ms/#/experiments/291913350782972063/runs/2bafaf059f0b4472a8ea88d7c2cac5a9/model-metrics
+    # mlm_weight: 0.10362534598644786
+    # prpd_weight: 0.8579023480760222
+    # tc_weight: 0.7842442072922995
+
+    # prpd_w = 0
+    # # source https://lx619lhl-5000.euw.devtunnels.ms/#/experiments/541065181958251087/runs/50dc38585e1243369d83ccf87c08968f
+    # # result https://lx619lhl-5000.euw.devtunnels.ms/#/experiments/291913350782972063/runs/2bafaf059f0b4472a8ea88d7c2cac5a9/model-metrics
+    # mlm_weight: 0.10362534598644786
+    # prpd_weight: 0
+    # tc_weight: 0.7842442072922995
+
+    #masker-fix
+    # #source https://lx619lhl-5000.euw.devtunnels.ms/#/experiments/913273903130523147/runs/abbad9f1972d4475b9a64391b894f381
+    # prpd_weight: 0.03
+    # mlm_weight: 0.1
+    # tc_weight: 0.1
+    # #source https://lx619lhl-5000.euw.devtunnels.ms/#/experiments/913273903130523147/runs/abbad9f1972d4475b9a64391b894f381
+    prpd_weight: 0.01
+    mlm_weight: 0.1
+    tc_weight: 0.1
+
+    tc_warmup_frac: 0.2
+    d_lr: 5.849348540938728e-05
+    d_update_every: 4
+    perm_repeats: 2
+    r1_gamma: 5.0
+    d_train_when_dloss_gt: 0.55
+    stdz_z: true
+    use_epochwise_d: true
+    d_pool_max: 256
+    d_phase_passes: 1
+    d_phase_mb: 64
+
+    optimizer_args:
+      lr: 0.0007167254366665445
+      weight_decay: 0.1
+      eps: 1.e-8
+    lr_scheduler_args:
+      max_lr: 1e-3
+      pct_start: 0.15
+      div_factor: 10
+    ndt_cfg:
+      encoder:
+        from_pt: null
+        stitching: false # single session
+        masker:
+          force_active: true
+          mode: temporal
+          ratio: 0.3
+          zero_ratio: 1.0
+          random_ratio: 1.0
+          expand_prob: 0.0
+          max_timespan: 1
+          channels: null
+          timesteps: null
+          mask_regions:
+          - all
+          target_regions:
+          - all
+          n_mask_regions: 1
+        context: # -1 is bidirectional attention
+          forward: -1
+          backward: -1
+        norm_and_noise:
+          active: false
+          smooth_sd: 2
+          norm: zscore
+          eps: 1.0e-07
+          white_noise_sd: 1.0
+          constant_offset_sd: 0.2
+        embedder:
+          n_channels: 367
+          n_blocks: 12
+          n_dates: 1 # single day session
+          use_prompt: false # no prompting
+          use_session: false # no sessions
+          max_F: 80 # 80 bins is max size
+          mode: linear
+          mult: 2
+          adapt: false
+          pos: true
+          act: softsign
+          scale: 1
+          bias: true
+          dropout: 0.2
+          fixup_init: false
+          init_range: 0.1
+          spike_log_init: true
+          max_spikes: 5
+          tokenize_binary_mask: false
+          stack:
+            active: false
+            size: 32
+            stride: 4
+        transformer:
+          # n_layers: 6
+          n_layers: 2
+          hidden_size: 128
+          use_scalenorm: false
+          use_rope: false
+          rope_theta: 10000.0
+          n_heads: 4
+          attention_bias: true
+          act: gelu
+          inter_size: 512
+          mlp_bias: true
+          dropout: 0.4
+          fixup_init: true
+        factors:
+          active: false
+          size: 8
+          act: relu
+          bias: true
+          dropout: 0.0
+          fixup_init: false
+          init_range: 0.1
+      decoder:
+        from_pt: null

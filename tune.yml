@@ -1,0 +1,51 @@
+
+seed_everything: 654
+
+trainer:
+  gradient_clip_val: 0.5
+  max_epochs: 150
+  precision: 16-mixed
+  accelerator: auto
+  devices: 1
+  log_every_n_steps: 9
+  deterministic: true
+  enable_progress_bar: false
+  # callbacks:
+  #   - class_path: lightning.pytorch.callbacks.ModelCheckpoint
+  #     init_args:
+  #       save_last: true
+  #       enable_version_counter: true
+  # plugins:
+  #   - class_path: ray.train.lightning.RayLightningEnvironment
+  # strategy: single_device
+
+data:
+  class_path: src.data.spike_datamodule.SpikeDataModule
+  init_args:
+    session_path: ./data/processed/spikes.npz
+    prpd_path:    ./data/processed/prpd.npz
+    batch_size:   32
+    num_workers:  0
+    contrastive:  true
+
+model:
+  class_path: src.models.cebra_factorvae_mlp.CEBRAFactorReg
+  init_args:
+    model_name: offset40-model-4x-subsample
+    input_dim: 367           # neurons
+    num_hidden_units: 800
+    latent_dim: 16
+    temperature: 0.07
+    tc_weight: 6.4
+    contrastive_weight: 1.0
+    lr: 3e-3
+    decoder_type: mlp
+    hidden_dims: [32,64]
+    recon_weight: 0.1
+    prpd_weight: 2.0
+    prpd_warmup: 5 # pretrain epochs without prpd_mse loss
+    prpd_head_hidden_dims: [32]
+    # lr_scheduler_args:
+    #   mode: min
+    #   patience: 7
+    #   factor: 0.8

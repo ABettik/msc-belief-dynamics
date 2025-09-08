@@ -1,0 +1,18 @@
+name: my_msc_proj
+channels:
+  - conda-forge
+dependencies:
+  - python=3.10
+  - lightning=2.5.1
+  - numpy
+  - pandas
+  - scipy
+  - scikit-learn
+  - transformers[torch]==4.38.2
+  - pip:
+    - mlflow
+    - ray[tune]
+    - cebra
+    - dvc
+    - "jsonargparse[signatures]>=4.27.7"
+    - derivative>=0.3
